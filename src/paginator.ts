@@ -49,12 +49,16 @@ const BLOCK_TAGS = new Set([
 
 // PRE is absent — it gets its own line-based splitter.
 const UNSPLITTABLE_TAGS = new Set([
-  "CODE", "IMG", "HR", "H1", "H2", "H3", "H4", "H5", "H6",
+  "CODE", "IMG", "FIGURE", "HR", "H1", "H2", "H3", "H4", "H5", "H6",
 ]);
 
 // 2px guards against sub-pixel rendering differences between the light-DOM
 // paginator sandbox and the shadow DOM preview context.
 const HEIGHT_EPS = 2;
+
+// If moving an unsplittable / kept-together block to a fresh page leaves more
+// than 40% of the current page empty, we prefer splitting over keeping together.
+const KEEP_TOGETHER_GAP_THRESHOLD = 0.4;
 
 function measureNodesHeight(nodes: HTMLElement[], measureEl: HTMLElement): number {
   measureEl.empty();
@@ -218,8 +222,16 @@ function splitListElement(
 
 // ── Table splitter ───────────────────────────────────────────────────────────
 
-function buildTableWithRows(tableEl: HTMLTableElement, rows: HTMLTableRowElement[]): HTMLTableElement {
+function buildTableWithRows(
+  tableEl: HTMLTableElement,
+  rows: HTMLTableRowElement[],
+  isContinuation = false,
+  isFinal = true,
+): HTMLTableElement {
   const clone = tableEl.cloneNode(false) as HTMLTableElement;
+  if (isContinuation) {
+    clone.classList.add("mpdf-table-continued");
+  }
   const caption = tableEl.querySelector("caption");
   if (caption) clone.appendChild(caption.cloneNode(true));
   const colgroup = tableEl.querySelector("colgroup");
@@ -228,6 +240,7 @@ function buildTableWithRows(tableEl: HTMLTableElement, rows: HTMLTableRowElement
   const tbody = createEl("tbody");
   for (const row of rows) tbody.appendChild(row.cloneNode(true));
   clone.appendChild(tbody);
+  if (isFinal && tableEl.tFoot) clone.appendChild(tableEl.tFoot.cloneNode(true));
   return clone;
 }
 
@@ -236,6 +249,18 @@ function splitTableElement(
   fits: (node: HTMLElement) => boolean,
   forceSplit: boolean,
 ): [HTMLElement, HTMLElement] | null {
+  // If table has no explicit thead, but the first row consists entirely of TH cells,
+  // promote it into tHead so continuation fragments can repeat the header.
+  if (!tableEl.tHead) {
+    const firstRow = tableEl.rows[0];
+    if (firstRow && firstRow.cells.length > 0 && Array.from(firstRow.cells).every((c) => c.tagName === "TH")) {
+      const thead = createEl("thead");
+      thead.appendChild(firstRow.cloneNode(true));
+      tableEl.insertBefore(thead, tableEl.firstChild);
+      firstRow.remove();
+    }
+  }
+
   const body = tableEl.tBodies[0];
   const rows = body
     ? Array.from(body.rows)
@@ -244,7 +269,7 @@ function splitTableElement(
 
   let fitCount = 0;
   for (let i = 0; i < rows.length; i++) {
-    if (fits(buildTableWithRows(tableEl, rows.slice(0, i + 1)))) fitCount = i + 1;
+    if (fits(buildTableWithRows(tableEl, rows.slice(0, i + 1), false, false))) fitCount = i + 1;
     else break;
   }
 
@@ -256,8 +281,8 @@ function splitTableElement(
   if (fitCount >= rows.length) return null;
 
   return [
-    buildTableWithRows(tableEl, rows.slice(0, fitCount)),
-    buildTableWithRows(tableEl, rows.slice(fitCount)),
+    buildTableWithRows(tableEl, rows.slice(0, fitCount), false, false),
+    buildTableWithRows(tableEl, rows.slice(fitCount), true, true),
   ];
 }
 
@@ -311,29 +336,50 @@ function splitPreElement(
     return [first, second];
   };
 
-  let best: [HTMLElement, HTMLElement] | null = null;
   let fitCount = 0;
-  for (let i = 1; i <= lines.length; i++) {
+  for (let i = 1; i < lines.length; i++) {
     const candidate = buildSplit(i);
     if (!candidate || !fits(candidate[0])) break;
-    best = candidate;
     fitCount = i;
   }
 
-  if (fitCount <= 0) {
-    if (!forceSplit) return null;
-    best = buildSplit(1);
-    fitCount = 1;
-  }
-  if (fitCount >= lines.length || !best) return null;
+  const MIN_LINES = 3;
 
-  return best;
+  if (!forceSplit) {
+    // When splitting on a page with existing content:
+    // 1. Fragment 1 must have at least MIN_LINES
+    if (fitCount < MIN_LINES) return null;
+    // 2. Fragment 2 (remainder) must have at least MIN_LINES
+    if (lines.length - fitCount < MIN_LINES) {
+      const adjusted = lines.length - MIN_LINES;
+      if (adjusted >= MIN_LINES) {
+        fitCount = adjusted;
+      } else {
+        // Cannot guarantee at least MIN_LINES for both fragments
+        return null;
+      }
+    }
+  } else {
+    // When forced on an empty page (block exceeds an entire page):
+    // Protect remainder: ensure at least MIN_LINES in the second fragment
+    // whenever the total line count allows it (i.e. total > MIN_LINES).
+    if (fitCount > 0 && lines.length - fitCount < MIN_LINES && lines.length > MIN_LINES) {
+      fitCount = lines.length - MIN_LINES;
+    }
+    // Guarantee progress: always take at least 1 line
+    if (fitCount <= 0) {
+      fitCount = 1;
+    }
+  }
+
+  return buildSplit(fitCount);
 }
 
 // ── Element splitter dispatcher ──────────────────────────────────────────────
 
 function isInlineSplitCandidate(el: HTMLElement): boolean {
   if (!INLINE_SPLIT_TAGS.has(el.tagName)) return false;
+  if (el.querySelector("img") !== null) return false;
   for (const child of Array.from(el.childNodes)) {
     if (child.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS.has((child as HTMLElement).tagName))
       return false;
@@ -352,6 +398,33 @@ function splitElement(
   if (el.tagName === "UL" || el.tagName === "OL") return splitListElement(el, fits, forceSplit);
   if (isInlineSplitCandidate(el)) return splitInlineElement(el, fits, forceSplit);
   return null;
+}
+
+// ── Image scaling helper ─────────────────────────────────────────────────────
+
+function scaleImageBlock(node: HTMLElement, maxAvailableHeight: number, measureEl: HTMLElement): void {
+  const imgs = node.tagName === "IMG"
+    ? [node as HTMLImageElement]
+    : Array.from(node.querySelectorAll<HTMLImageElement>("img"));
+  if (imgs.length === 0) return;
+
+  for (const img of imgs) {
+    img.style.maxHeight = `${maxAvailableHeight}px`;
+    img.style.width = "auto";
+    img.style.objectFit = "contain";
+    img.style.boxSizing = "border-box";
+  }
+
+  // If container padding, borders, or captions still cause total height to exceed maxAvailableHeight,
+  // adjust the image maxHeight down by the measured excess.
+  const measuredHeight = measureNodesHeight([node], measureEl);
+  if (measuredHeight > maxAvailableHeight) {
+    const excess = measuredHeight - maxAvailableHeight;
+    const adjusted = Math.max(50, maxAvailableHeight - excess);
+    for (const img of imgs) {
+      img.style.maxHeight = `${adjusted}px`;
+    }
+  }
 }
 
 // ── Main pagination loop ─────────────────────────────────────────────────────
@@ -404,10 +477,131 @@ export function paginateEl(
       const child = children[idx];
       const fits = makeFitFn(currentPage, measure, contentHeightPx);
 
+      // Guard 2: Orphan Headings (H1–H6) with lookahead.
+      // A heading must never be placed alone at the bottom of a page without
+      // sufficient content following it. This guard only activates when the page
+      // already has content (currentPage.length > 0) because a heading at the
+      // top of a fresh page is the optimal position — not an orphan.
+      if (/^H[1-6]$/.test(child.tagName) && currentPage.length > 0) {
+        if (!fits(child)) {
+          // Heading doesn't fit in remaining space; flush current page and move to fresh page.
+          pages.push(currentPage);
+          currentPage = [];
+          continue;
+        }
+
+        const heightWithHeading = measureNodesHeight([...currentPage, child], measure);
+        const remainingSpace = contentHeightPx - heightWithHeading;
+
+        // Condition 1: Minimum safety threshold (at least 80px must remain after the heading).
+        if (remainingSpace < 80) {
+          pages.push(currentPage);
+          currentPage = [];
+          continue;
+        }
+
+        // Condition 2: Lookahead for subsequent block.
+        if (idx + 1 < children.length) {
+          const nextChild = children[idx + 1];
+          const fitsWithNext = measureNodesHeight([...currentPage, child, nextChild], measure) <= contentHeightPx - HEIGHT_EPS;
+          if (!fitsWithNext) {
+            let isNextPreKeptTogether = false;
+            if (nextChild.tagName === "PRE") {
+              const nextHeight = measureNodesHeight([nextChild], measure);
+              if (nextHeight <= contentHeightPx - HEIGHT_EPS) {
+                const gapRatioAfterHeading = remainingSpace / contentHeightPx;
+                if (gapRatioAfterHeading <= KEEP_TOGETHER_GAP_THRESHOLD) {
+                  isNextPreKeptTogether = true;
+                }
+              }
+            }
+            const fitsWithChild = makeFitFn([...currentPage, child], measure, contentHeightPx);
+            const canSplitNext = !isNextPreKeptTogether && splitElement(nextChild, fitsWithChild, false) !== null;
+            if (!canSplitNext) {
+              pages.push(currentPage);
+              currentPage = [];
+              continue;
+            }
+          }
+        }
+
+        // Heading passed all orphan checks and fits on this page.
+        currentPage.push(child.cloneNode(true) as HTMLElement);
+        idx++;
+        continue;
+      }
+
+      // Guard 3: Image protection & auto-scaling.
+      // Never split an image block. If it does not fit on the current page, move it to a fresh page.
+      // If it exceeds the full page height on an empty page, scale it down to fit.
+      const isImageBlock = child.tagName === "IMG" || child.tagName === "FIGURE" || child.querySelector("img") !== null;
+      if (isImageBlock) {
+        if (currentPage.length > 0) {
+          if (fits(child)) {
+            currentPage.push(child.cloneNode(true) as HTMLElement);
+            idx++;
+            continue;
+          }
+          // Does not fit on current page: flush current page and retry on a fresh page.
+          pages.push(currentPage);
+          currentPage = [];
+          continue;
+        }
+
+        // Alone on a fresh page: if oversized, scale a clone to fit the page height.
+        // We clone first to avoid mutating the sandbox DOM node (consistent with
+        // the clone-then-push pattern used throughout the paginator).
+        if (!fits(child)) {
+          const scaledClone = child.cloneNode(true) as HTMLElement;
+          scaleImageBlock(scaledClone, contentHeightPx - HEIGHT_EPS, measure);
+          currentPage.push(scaledClone);
+          pages.push(currentPage);
+          currentPage = [];
+          idx++;
+          continue;
+        }
+
+        currentPage.push(child.cloneNode(true) as HTMLElement);
+        idx++;
+        continue;
+      }
+
       if (fits(child)) {
         currentPage.push(child.cloneNode(true) as HTMLElement);
         idx++;
         continue;
+      }
+
+      // Guard 1: Contextual Keep-Together for <pre> (code blocks).
+      // Gap-aware: if keeping together would waste > 40% of the page,
+      // prefer splitting (if both fragments are substantial >= MIN_LINES).
+      if (child.tagName === "PRE" && currentPage.length > 0) {
+        const blockHeight = measureNodesHeight([child], measure);
+        if (blockHeight <= contentHeightPx - HEIGHT_EPS) {
+          const usedHeight = measureNodesHeight(currentPage, measure);
+          const gapRatio = (contentHeightPx - usedHeight) / contentHeightPx;
+
+          if (gapRatio > KEEP_TOGETHER_GAP_THRESHOLD) {
+            const splitResult = splitPreElement(child, fits, false);
+            if (splitResult) {
+              currentPage.push(splitResult[0]);
+              pages.push(currentPage);
+              currentPage = [];
+              const remainder = splitResult[1];
+              if (remainder.textContent?.trim() || remainder.children.length > 0) {
+                children[idx] = remainder;
+              } else {
+                idx++;
+              }
+              continue;
+            }
+          }
+          // Small gap (gapRatio <= KEEP_TOGETHER_GAP_THRESHOLD) or can't split cleanly -> keep together
+          pages.push(currentPage);
+          currentPage = [];
+          continue;
+        }
+        // Exceeds full page -> fall through to force-split below
       }
 
       // Element doesn't fit. Try to split it across the page boundary.
