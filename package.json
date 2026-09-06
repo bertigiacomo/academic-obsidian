@@ -1,11 +1,11 @@
 {
-  "name": "obsidian-advanced-pdf-export",
+  "name": "academic-obsidian",
   "version": "4.5.0",
-  "description": "Obsidian plugin for advanced PDF export",
-  "author": "ShrekBytes",
+  "description": "Academic Obsidian — LaTeX-Grade PDF Export Plugin",
+  "author": "Giacomo Berti",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ShrekBytes/advanced-pdf-export"
+    "url": "https://github.com/bertigiacomo/academic-obsidian"
   },
   "main": "main.js",
   "scripts": {

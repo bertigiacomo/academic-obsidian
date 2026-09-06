@@ -1,14 +1,9 @@
-# Advanced PDF Export — Obsidian Plugin
+# Academic Obsidian — LaTeX-Grade PDF Export Plugin
 
-![GitHub release](https://img.shields.io/github/v/release/ShrekBytes/advanced-pdf-export)
-![License](https://img.shields.io/github/license/ShrekBytes/advanced-pdf-export)
-[![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22advanced-pdf-export%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json)](https://obsidian.md/plugins?id=advanced-pdf-export)
+> **Desktop only** — requires the Obsidian desktop app (uses Electron's print pipeline).  
+> *Based on [Advanced PDF Export](https://github.com/ShrekBytes/advanced-pdf-export) by ShrekBytes, licensed under GPL-3.0.*
 
-Export Obsidian notes as pixel-perfect PDFs with seven style presets, manual page breaks, full layout control, and a live preview — all from a full-screen modal panel.
-
-> **Desktop only** — requires the Obsidian desktop app (uses Electron's print pipeline).
-
-If this plugin saves you time, consider **[supporting the project](https://shrekbytes.github.io/support/)** ☕
+Export Obsidian notes as publication-ready, LaTeX-grade PDFs with live preview, academic typography, Booktabs tables, automatic section numbering, and table of contents.
 
 ![Main panel with live preview](screenshots/preview.png)
 
@@ -213,6 +208,7 @@ All settings take effect after closing the settings panel.
 
 ## License
 
-Open source under [GPL-3.0 License](LICENSE).
+Open source under [GPL-3.0 License](LICENSE).  
+Based on [Advanced PDF Export](https://github.com/ShrekBytes/advanced-pdf-export) by ShrekBytes, licensed under GPL-3.0.
 
 Contributions are welcome — feel free to open issues or pull requests.

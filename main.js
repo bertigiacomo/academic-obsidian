@@ -48,7 +48,7 @@ var wd=Object.create;var Qo=Object.defineProperty;var Sd=Object.getOwnPropertyDe
   }
   .mpdf-doc h2 {
     font-size: ${Math.round(17*r)}px;
-    font-weight: 600;
+    font-weight: 700;
     color: ${e.headingColor};
     margin: ${Math.round(20*r)}px 0 ${Math.round(10*r)}px;
     ${e.h2BorderBottom?`border-bottom: 0.5px solid ${e.accentColor}55; padding-bottom: 5px;`:""}
@@ -60,7 +60,7 @@ var wd=Object.create;var Qo=Object.defineProperty;var Sd=Object.getOwnPropertyDe
     margin: ${Math.round(16*r)}px 0 ${Math.round(8*r)}px;
     letter-spacing: 0.01em;
   }
-  .mpdf-doc h4 { font-size: ${Math.round(13*r)}px; font-weight: 700; color: ${e.headingColor}; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .mpdf-doc h4 { font-size: ${Math.round(13*r)}px; font-weight: 700; color: ${e.headingColor}; margin: 12px 0 6px; letter-spacing: 0.04em; }
   .mpdf-doc h5 { font-size: ${Math.round(12*r)}px; font-weight: 600; color: ${e.headingColor}; margin: 10px 0 4px; font-style: italic; }
   .mpdf-doc h6 { font-size: ${Math.round(11*r)}px; font-weight: 600; color: ${e.bodyColor}; margin: 8px 0 4px; font-style: italic; opacity: 0.75; }
   .mpdf-doc p { margin: 0 0 ${e.paragraphSpacing}em; }

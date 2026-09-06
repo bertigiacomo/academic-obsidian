@@ -1,11 +1,10 @@
 {
-  "id": "advanced-pdf-export",
-  "name": "Advanced PDF Export",
+  "id": "academic-obsidian",
+  "name": "Academic Obsidian",
   "version": "4.5.0",
   "minAppVersion": "1.13.0",
-  "description": "Export notes as pixel-perfect PDFs with live preview, style presets, manual page breaks, tables, and full layout control.",
-  "author": "ShrekBytes",
-  "authorUrl": "https://github.com/ShrekBytes",
-  "isDesktopOnly": true,
-  "fundingUrl": "https://shrekbytes.github.io/support/"
+  "description": "Export Obsidian notes as publication-ready, LaTeX-grade PDFs with live preview, academic typography, Booktabs tables, and table of contents.",
+  "author": "Giacomo Berti",
+  "authorUrl": "https://github.com/bertigiacomo/academic-obsidian",
+  "isDesktopOnly": true
 }
