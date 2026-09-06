@@ -41,6 +41,103 @@ export function isRTLContent(text: string): boolean {
   return total > 0 && rtl / total > 0.1;
 }
 
+/** Metadata extracted from YAML frontmatter for formal academic document headers. */
+export interface AcademicMeta {
+  title?: string;
+  authors?: string[];
+  date?: string;
+  abstract?: string;
+  affiliation?: string;
+}
+
+/** Extracts academic metadata fields from the raw markdown's YAML frontmatter.
+ *  Returns null if no frontmatter is present or none of the academic fields are found. */
+export function extractAcademicFrontmatter(md: string): AcademicMeta | null {
+  const fmMatch = md.match(/^---[ \t]*\n([\s\S]*?)\n---[ \t]*(?:\n|$)/);
+  if (!fmMatch) return null;
+
+  const yaml = fmMatch[1];
+  // Simple key: value parser — robust enough for flat YAML fields without
+  // pulling in a full YAML library (which the plugin doesn't depend on).
+  const get = (key: string): string | undefined => {
+    const re = new RegExp(`^${key}\\s*:\\s*["']?(.+?)["']?\\s*$`, 'mi');
+    const m = yaml.match(re);
+    return m ? m[1].trim() : undefined;
+  };
+
+  const title = get('title');
+  const date = get('date');
+  const abstract_ = get('abstract');
+  const affiliation = get('affiliation');
+
+  // author can be singular or plural, and might be a YAML list
+  let authors: string[] | undefined;
+  const authorSingle = get('author');
+  const authorsField = get('authors');
+  if (authorSingle) {
+    authors = authorSingle.split(/,\s*/).map(a => a.trim()).filter(Boolean);
+  } else if (authorsField) {
+    // Handle inline YAML list: ["Author1", "Author2"] or Author1, Author2
+    const cleaned = authorsField.replace(/^\[|\]$/g, '');
+    authors = cleaned.split(/,\s*/).map(a => a.replace(/^["']|["']$/g, '').trim()).filter(Boolean);
+  } else {
+    // Try multi-line YAML list:
+    //   authors:
+    //     - Author1
+    //     - Author2
+    const multiRe = /^authors\s*:\s*\n((?:\s+-\s+.+\n?)+)/mi;
+    const multiMatch = yaml.match(multiRe);
+    if (multiMatch) {
+      authors = multiMatch[1]
+        .split('\n')
+        .map(line => line.replace(/^\s*-\s*/, '').replace(/^["']|["']$/g, '').trim())
+        .filter(Boolean);
+    }
+  }
+
+  // Return null if no academic fields are found at all
+  if (!title && !authors?.length && !date && !abstract_ && !affiliation) return null;
+
+  return {
+    title,
+    authors: authors?.length ? authors : undefined,
+    date,
+    abstract: abstract_,
+    affiliation,
+  };
+}
+
+/** Builds a detached DOM element containing the formatted academic header
+ *  (title, authors, affiliation, date, abstract) for insertion at the top
+ *  of the rendered document. */
+export function buildAcademicHeaderEl(meta: AcademicMeta): HTMLElement {
+  const container = createDiv({ cls: 'mpdf-academic-header' });
+
+  if (meta.title) {
+    container.createDiv({ cls: 'mpdf-academic-title', text: meta.title });
+  }
+
+  if (meta.authors?.length) {
+    container.createDiv({ cls: 'mpdf-academic-authors', text: meta.authors.join(', ') });
+  }
+
+  if (meta.affiliation) {
+    container.createDiv({ cls: 'mpdf-academic-affiliation', text: meta.affiliation });
+  }
+
+  if (meta.date) {
+    container.createDiv({ cls: 'mpdf-academic-date', text: meta.date });
+  }
+
+  if (meta.abstract) {
+    const abstractEl = container.createDiv({ cls: 'mpdf-academic-abstract' });
+    const labelSpan = abstractEl.createSpan({ cls: 'mpdf-academic-abstract-label', text: 'Abstract.' });
+    abstractEl.appendText(' ' + meta.abstract);
+  }
+
+  return container;
+}
+
 // ─── Rendered-HTML cleanup ──────────────────────────────────────────────────────
 
 // Pre-compiled once. String.replace() and String.matchAll() both reset a

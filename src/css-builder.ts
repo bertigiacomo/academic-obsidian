@@ -446,7 +446,199 @@ export function buildDocCSS(s: PDFExportSettings, isRTL = false): string {
     height: auto;
     display: block;
   }
+  ${buildAcademicCSS(s)}
   `.trim();
+}
+
+/** Builds CSS for academic elements (algorithms, theorems, proof, headers) */
+export function buildAcademicCSS(s: PDFExportSettings): string {
+  const codeFont = resolveCodeFont(s);
+  return `
+  /* ── Algorithm2e / Academic Algorithm Block ──────────────────────────── */
+  .mpdf-algorithm {
+    border-top: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    margin: 1.4em 0;
+    padding: 0;
+    page-break-inside: auto;
+  }
+  .mpdf-algo-header {
+    padding: 7px 12px;
+    font-size: 0.95em;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .mpdf-algo-header strong {
+    font-weight: 800;
+  }
+  .mpdf-algo-separator {
+    border-bottom: 1px solid currentColor;
+    margin: 0;
+  }
+  .mpdf-algo-io {
+    padding: 3px 12px;
+    font-size: 0.9em;
+    line-height: 1.55;
+  }
+  .mpdf-algo-io strong {
+    font-weight: 700;
+  }
+  .mpdf-algo-body {
+    padding: 6px 12px 8px;
+  }
+  .mpdf-algo-line {
+    display: flex;
+    gap: 12px;
+    padding: 1.5px 0;
+    font-size: 0.88em;
+    font-family: ${codeFont};
+    line-height: 1.6;
+  }
+  .mpdf-algo-line-num {
+    color: #8c8c8c;
+    flex-shrink: 0;
+    min-width: 2.2em;
+    text-align: right;
+    font-family: ${codeFont};
+    font-size: 0.88em;
+    user-select: none;
+    opacity: 0.8;
+  }
+  .mpdf-algo-line-content {
+    flex: 1;
+    font-family: ${codeFont};
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .mpdf-algo-keyword {
+    font-weight: 700;
+    color: ${s.headingColor};
+  }
+  .mpdf-algo-comment {
+    font-style: italic;
+    color: #6a737d;
+    font-family: ${codeFont};
+  }
+
+  /* ── Academic Theorems, Lemmas, Definitions, Proofs ──────────────────── */
+  .mpdf-theorem-box {
+    margin: 1.2em 0;
+    padding: 11px 16px;
+    border-radius: 0 5px 5px 0;
+    page-break-inside: auto;
+    font-size: inherit;
+    line-height: 1.6;
+  }
+  .mpdf-theorem-type-theorem {
+    border-left: 3.5px solid ${s.accentColor};
+    background: ${s.accentColor}0e;
+  }
+  .mpdf-theorem-type-theorem .mpdf-theorem-header strong {
+    color: ${s.accentColor};
+  }
+  .mpdf-theorem-type-lemma {
+    border-left: 3.5px solid #7c3aed;
+    background: #7c3aed0a;
+  }
+  .mpdf-theorem-type-lemma .mpdf-theorem-header strong {
+    color: #7c3aed;
+  }
+  .mpdf-theorem-type-definition {
+    border-left: 3.5px solid #059669;
+    background: #0596690a;
+  }
+  .mpdf-theorem-type-definition .mpdf-theorem-header strong {
+    color: #059669;
+  }
+  .mpdf-theorem-header {
+    margin-bottom: 6px;
+    font-size: 0.95em;
+  }
+  .mpdf-theorem-header strong {
+    font-weight: 700;
+    font-style: normal;
+    letter-spacing: 0.03em;
+  }
+  .mpdf-theorem-title {
+    font-weight: 500;
+    font-style: italic;
+    color: ${s.bodyColor};
+  }
+  .mpdf-theorem-content {
+    font-size: inherit;
+  }
+  .mpdf-theorem-content p:first-child { margin-top: 0; }
+  .mpdf-theorem-content p:last-child { margin-bottom: 0; }
+
+  .mpdf-proof-box {
+    margin: 1.2em 0;
+    padding: 8px 16px;
+    border-left: 2.5px solid ${s.bodyColor}44;
+    page-break-inside: auto;
+  }
+  .mpdf-proof-header {
+    margin-bottom: 5px;
+    font-size: 0.95em;
+  }
+  .mpdf-proof-header em {
+    font-style: italic;
+    font-weight: 700;
+  }
+  .mpdf-proof-content {
+    font-style: italic;
+    font-size: inherit;
+    line-height: 1.6;
+  }
+  .mpdf-proof-content p:first-child { margin-top: 0; }
+  .mpdf-proof-content p:last-child { margin-bottom: 0; }
+
+  .mpdf-academic-header {
+    text-align: center;
+    margin-bottom: 2em;
+    padding-bottom: 1em;
+  }
+  .mpdf-academic-title {
+    font-size: 1.8em;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-bottom: 0.5em;
+    color: ${s.headingColor};
+  }
+  .mpdf-academic-authors {
+    font-size: 1.1em;
+    margin-bottom: 0.3em;
+    color: ${s.bodyColor};
+  }
+  .mpdf-academic-affiliation {
+    font-size: 0.9em;
+    color: ${s.bodyColor}aa;
+    margin-bottom: 0.3em;
+  }
+  .mpdf-academic-date {
+    font-size: 0.9em;
+    color: ${s.bodyColor}99;
+    margin-bottom: 1em;
+  }
+  .mpdf-academic-abstract {
+    text-align: justify;
+    margin: 1em 3em 0;
+    font-size: 0.9em;
+    font-style: italic;
+    border-top: 1px solid ${s.bodyColor}33;
+    padding-top: 0.8em;
+    line-height: 1.5;
+  }
+  .mpdf-academic-abstract-label {
+    font-weight: 700;
+    font-style: normal;
+    margin-right: 0.5em;
+  }
+
+  .mpdf-theorem-number {
+    font-weight: 700;
+    margin-right: 0.25em;
+  }
+  `;
 }
 
 // ─── MathJax CSS extraction ───────────────────────────────────────────────────

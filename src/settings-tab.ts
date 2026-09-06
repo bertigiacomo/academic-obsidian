@@ -313,6 +313,16 @@ export class PDFExportSettingTab extends PluginSettingTab {
         toggle("Striped table rows", "tableStriped"),
         toggle("Include PDF outline (bookmarks)", "includeOutline",
           "Embeds a bookmark tree into the exported PDF. Most PDF readers display it in a side panel for quick navigation."),
+        toggle("Academic header from frontmatter", "enableAcademicHeader",
+          "Automatically format title, author, date, and abstract from YAML frontmatter as a formal publication header at the top of the document."),
+      ]),
+
+      group("Math", [
+        {
+          name: "Custom MathJax macros",
+          desc: "LaTeX \\newcommand and \\DeclareMathOperator definitions injected into the MathJax engine for the export preview. One per line.",
+          control: { type: "textarea", key: "customMathMacros" },
+        } satisfies SettingDefinitionControl,
       ]),
     ];
   }

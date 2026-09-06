@@ -117,6 +117,17 @@ export interface PDFExportSettings extends DocStyle {
   backgroundImageOpacity: number;
   /** When true, headings H1–H6 are embedded as a bookmark tree in the exported PDF. */
   includeOutline: boolean;
+
+  // ── Academic features ───────────────────────────────────────────────────
+  /** When true and YAML frontmatter contains title/author/date/abstract fields,
+   *  a formal publication-style header is generated at the top of the document. */
+  enableAcademicHeader: boolean;
+  /** LaTeX \newcommand / \DeclareMathOperator definitions injected into the
+   *  MathJax engine for the export preview (not into Obsidian's global MathJax). */
+  customMathMacros: string;
+  /** When true, theorem/lemma/definition/proof blocks are auto-numbered per type
+   *  in the export preview (not in the live Obsidian preview). */
+  autoNumberTheorems: boolean;
 }
 
 // ─── Style Presets ────────────────────────────────────────────────────────────
@@ -354,6 +365,28 @@ export const DEFAULT_SETTINGS: PDFExportSettings = {
   backgroundImageOpacity: 1,
   // Outline / bookmarks
   includeOutline: true,
+  // Academic features
+  enableAcademicHeader: true,
+  customMathMacros: [
+    "\\newcommand{\\R}{\\mathbb{R}}",
+    "\\newcommand{\\N}{\\mathbb{N}}",
+    "\\newcommand{\\Z}{\\mathbb{Z}}",
+    "\\newcommand{\\C}{\\mathbb{C}}",
+    "\\newcommand{\\Q}{\\mathbb{Q}}",
+    "\\newcommand{\\E}{\\mathbb{E}}",
+    "\\newcommand{\\P}{\\mathbb{P}}",
+    "\\DeclareMathOperator*{\\argmin}{arg\\,min}",
+    "\\DeclareMathOperator*{\\argmax}{arg\\,max}",
+    "\\DeclareMathOperator{\\Var}{Var}",
+    "\\DeclareMathOperator{\\Cov}{Cov}",
+    "\\newcommand{\\norm}[1]{\\left\\lVert#1\\right\\rVert}",
+    "\\newcommand{\\abs}[1]{\\left\\lvert#1\\right\\rvert}",
+    "\\newcommand{\\assign}{\\leftarrow}",
+    "\\newcommand{\\given}{\\mid}",
+    "\\newcommand{\\T}{^\\top}",
+    "\\newcommand{\\qed}{\\blacksquare}",
+  ].join("\n"),
+  autoNumberTheorems: false,
 };
 
 /** Color pickers in the Colors settings group. Used to reset only those

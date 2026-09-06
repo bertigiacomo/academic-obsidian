@@ -331,3 +331,171 @@
   left: 0;
   transform-origin: top left;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Academic Fenced Code Blocks (Obsidian Live Preview & Reading View)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.mpdf-algorithm {
+  border-top: 2px solid var(--text-normal, #333);
+  border-bottom: 2px solid var(--text-normal, #333);
+  margin: 1.5em 0;
+  padding: 0;
+  background: var(--background-primary);
+  border-radius: 2px;
+}
+
+.mpdf-algo-header {
+  padding: 8px 14px;
+  font-size: 0.95em;
+  font-weight: 700;
+  color: var(--text-normal);
+}
+
+.mpdf-algo-header strong {
+  font-weight: 800;
+}
+
+.mpdf-algo-separator {
+  border-bottom: 1px solid var(--text-muted, rgba(128, 128, 128, 0.4));
+  margin: 0;
+}
+
+.mpdf-algo-io {
+  padding: 4px 14px;
+  font-size: 0.9em;
+  line-height: 1.55;
+  color: var(--text-normal);
+}
+
+.mpdf-algo-io strong {
+  font-weight: 700;
+}
+
+.mpdf-algo-body {
+  padding: 8px 14px 10px;
+}
+
+.mpdf-algo-line {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+  font-size: 0.88em;
+  font-family: var(--font-monospace, monospace);
+  line-height: 1.6;
+}
+
+.mpdf-algo-line-num {
+  color: var(--text-faint, #888);
+  flex-shrink: 0;
+  min-width: 2.2em;
+  text-align: right;
+  font-family: var(--font-monospace, monospace);
+  font-size: 0.88em;
+  user-select: none;
+  opacity: 0.8;
+}
+
+.mpdf-algo-line-content {
+  flex: 1;
+  font-family: var(--font-monospace, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.mpdf-algo-keyword {
+  font-weight: 700;
+  color: var(--text-accent, var(--interactive-accent, #7c6af7));
+}
+
+.mpdf-algo-comment {
+  font-style: italic;
+  color: var(--text-faint, #6a737d);
+  font-family: var(--font-monospace, monospace);
+}
+
+/* Theorem-family boxes */
+.mpdf-theorem-box {
+  margin: 1.4em 0;
+  padding: 12px 18px;
+  border-radius: 0 6px 6px 0;
+  line-height: 1.6;
+}
+
+.mpdf-theorem-type-theorem {
+  border-left: 4px solid var(--interactive-accent, #7c6af7);
+  background: var(--background-secondary, rgba(124, 106, 247, 0.08));
+}
+
+.mpdf-theorem-type-theorem .mpdf-theorem-header strong {
+  color: var(--interactive-accent, #7c6af7);
+}
+
+.mpdf-theorem-type-lemma {
+  border-left: 4px solid #8b5cf6;
+  background: rgba(139, 92, 246, 0.07);
+}
+
+.mpdf-theorem-type-lemma .mpdf-theorem-header strong {
+  color: #8b5cf6;
+}
+
+.mpdf-theorem-type-definition {
+  border-left: 4px solid #10b981;
+  background: rgba(16, 185, 129, 0.07);
+}
+
+.mpdf-theorem-type-definition .mpdf-theorem-header strong {
+  color: #10b981;
+}
+
+.mpdf-theorem-header {
+  margin-bottom: 6px;
+  font-size: 0.95em;
+}
+
+.mpdf-theorem-header strong {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.88em;
+  letter-spacing: 0.04em;
+}
+
+.mpdf-theorem-title {
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-normal);
+  margin-left: 4px;
+}
+
+.mpdf-theorem-content {
+  font-size: inherit;
+}
+
+.mpdf-theorem-content p:first-child { margin-top: 0; }
+.mpdf-theorem-content p:last-child { margin-bottom: 0; }
+
+.mpdf-proof-box {
+  margin: 1.4em 0;
+  padding: 8px 18px;
+  border-left: 3px solid var(--text-faint, #666);
+}
+
+.mpdf-proof-header {
+  margin-bottom: 6px;
+  font-size: 0.95em;
+}
+
+.mpdf-proof-header em {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.mpdf-proof-content {
+  font-style: italic;
+  line-height: 1.6;
+}
+
+.mpdf-proof-content p:first-child { margin-top: 0; }
+.mpdf-proof-content p:last-child { margin-bottom: 0; }
+

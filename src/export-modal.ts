@@ -21,7 +21,7 @@ import {
 } from "./css-builder";
 import {
   normalizeMarkdown, stripFrontmatter, splitMarkdownSections, isRTLContent,
-  renderMarkdownToEl,
+  renderMarkdownToEl, extractAcademicFrontmatter, buildAcademicHeaderEl,
 } from "./markdown";
 import {
   paginateEl, buildPageLayouts, extractOutlineEntries, injectPDFOutline, PageLayout,
@@ -100,6 +100,41 @@ interface LayoutCache {
   accentColor: string;
   pageBackground: string;
   isRTL: boolean;
+}
+
+// ─── MathJax macro injection helper ─────────────────────────────────────────
+
+/** Parses `\newcommand` and `\DeclareMathOperator` definitions from a multi-line
+ *  string and returns a `<script>` tag that configures MathJax's tex.macros
+ *  for the export HTML. Returns "" if there are no valid definitions. */
+function buildMathJaxMacrosScript(raw: string): string {
+  if (!raw?.trim()) return "";
+  const macros: Record<string, string | [string, number]> = {};
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("%")) continue; // skip comments and blanks
+    // \newcommand{\name}[args]{body}
+    const ncMatch = trimmed.match(
+      /\\newcommand\s*\{\\(\w+)\}\s*(?:\[(\d+)\])?\s*\{((?:[^{}]|\{[^{}]*\})*)\}/,
+    );
+    if (ncMatch) {
+      const [, name, argc, body] = ncMatch;
+      macros[name] = argc ? [body, parseInt(argc)] : body;
+      continue;
+    }
+    // \DeclareMathOperator*?{\name}{text}
+    const dmMatch = trimmed.match(
+      /\\DeclareMathOperator\*?\s*\{\\(\w+)\}\s*\{([^}]*)\}/,
+    );
+    if (dmMatch) {
+      const [, name, text] = dmMatch;
+      const star = trimmed.includes("\\DeclareMathOperator*");
+      macros[name] = star ? `\\operatorname*{${text}}` : `\\operatorname{${text}}`;
+    }
+  }
+  if (Object.keys(macros).length === 0) return "";
+  const json = JSON.stringify(macros);
+  return `<script>window.MathJax = {tex:{macros:${json}}};</script>`;
 }
 
 // ─── Header / footer / frame rendering helpers ───────────────────────────────
@@ -507,6 +542,10 @@ export class PDFExportModal extends Modal {
     const s = this.plugin.settings;
     let md = normalizeMarkdown(this.editorEl.value);
 
+    // Extract academic metadata before stripping frontmatter — the header
+    // generator needs the raw YAML fields even when hideFrontmatter is on.
+    const academicMeta = s.enableAcademicHeader ? extractAcademicFrontmatter(md) : null;
+
     if (s.hideFrontmatter) {
       md = stripFrontmatter(md);
     }
@@ -544,6 +583,13 @@ export class PDFExportModal extends Modal {
     );
 
     if (token !== this.renderToken) return;
+
+    // Prepend academic header (title/author/date/abstract) to the first section
+    // so it appears at the top of the document in both preview and export.
+    if (academicMeta && sectionEls.length > 0) {
+      const headerEl = buildAcademicHeaderEl(academicMeta);
+      sectionEls[0].insertBefore(headerEl, sectionEls[0].firstChild);
+    }
 
     // Re-confirm the MathJax stylesheet is settled immediately before reading it.
     await waitForMathJaxStylesheetStable();
@@ -899,11 +945,14 @@ export class PDFExportModal extends Modal {
       ${docCSS}
     `;
 
+    const macrosScript = buildMathJaxMacrosScript(s.customMathMacros);
+
     const fullHTML = `<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
 <title>${escapeHTML(this.currentFile?.basename ?? "Export")}</title>
+${macrosScript}
 ${inlinedMathCSS ? `<style>${escapeCSSForStyle(inlinedMathCSS)}</style>` : ""}
 <style>${escapeCSSForStyle(printCSS)}</style>
 </head>

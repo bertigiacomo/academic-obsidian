@@ -6,13 +6,14 @@
 // PDFExportSettingTab (settings-tab.ts) for everything UI-related.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { Menu, Plugin, TFile } from "obsidian";
+import { Editor, Menu, Plugin, TFile } from "obsidian";
 import {
   DocStyle, PDFExportSettings, PRESETS, DEFAULT_SETTINGS, extractDocStyle, PRESET_COLOR_KEYS,
 } from "./settings";
 import { PDFExportModal } from "./export-modal";
 import { PDFExportSettingTab } from "./settings-tab";
 import { warmUpMathJax } from "./markdown";
+import { registerBlockProcessors } from "./block-processors";
 
 export default class MarkdownPDFPlugin extends Plugin {
   declare settings: PDFExportSettings;
@@ -30,6 +31,15 @@ export default class MarkdownPDFPlugin extends Plugin {
       name: "Open Panel",
       callback: () => this.openModal(),
     });
+    this.addCommand({
+      id: "insert-algorithm",
+      name: "Insert Algorithm Block",
+      editorCallback: (editor) => {
+        const template = "```algorithm\nAlgorithmName(params)\nInput: description\nOutput: description\n// body\n```\n";
+        editor.replaceSelection(template);
+      },
+    });
+    registerBlockProcessors(this);
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu: Menu, file) => {
         if (!(file instanceof TFile) || file.extension !== "md") return;
